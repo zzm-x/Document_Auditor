@@ -71,7 +71,7 @@
         <bt:Image id="Icon.80x80" DefaultValue="https://zzm-x.github.io/Document_Auditor/taskpane.html"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://YOUR-HOSTED-URL"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://zzm-x.github.io/Document_Auditor/taskpane.html"/>
         <bt:Url id="Commands.Url" DefaultValue="https://zzm-x.github.io/Document_Auditor/commands.html"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://zzm-x.github.io/Document_Auditor/taskpane.html"/>
       </bt:Urls>
