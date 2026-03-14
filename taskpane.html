@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Document Auditor</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; font-size: 13px; background: #fff; color: #1a1a1a; }
+
+    .header { background: #1a1a1a; color: #fff; padding: 14px 16px; }
+    .header h1 { font-size: 15px; font-weight: 600; }
+    .header p { font-size: 11px; color: #999; margin-top: 2px; }
+
+    .body { padding: 16px; }
+
+    .api-row { margin-bottom: 16px; }
+    .api-row label { font-size: 11px; color: #666; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .api-row input { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: monospace; }
+    .api-row input:focus { outline: none; border-color: #1a1a1a; }
+
+    .audit-select { margin-bottom: 16px; }
+    .audit-select label { font-size: 11px; color: #666; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .audit-options { display: flex; flex-direction: column; gap: 6px; }
+    .audit-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; }
+    .audit-option input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; }
+    .audit-option span { font-size: 12px; }
+    .audit-option small { font-size: 11px; color: #888; display: block; }
+
+    .run-btn { width: 100%; padding: 11px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 16px; }
+    .run-btn:hover { background: #333; }
+    .run-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    .progress { display: none; margin-bottom: 16px; }
+    .progress-label { font-size: 12px; color: #666; margin-bottom: 6px; }
+    .progress-bar-outer { background: #f0f0f0; border-radius: 99px; height: 6px; }
+    .progress-bar-inner { background: #1a1a1a; border-radius: 99px; height: 6px; width: 0%; transition: width 0.3s; }
+    .progress-step { font-size: 11px; color: #999; margin-top: 4px; }
+
+    .results { display: flex; flex-direction: column; gap: 10px; }
+    .result-card { border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
+    .result-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; cursor: pointer; background: #fafafa; }
+    .result-header:hover { background: #f0f0f0; }
+    .result-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .grade { font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 700; }
+    .grade-a { background: #dcfce7; color: #166534; }
+    .grade-b { background: #dbeafe; color: #1e40af; }
+    .grade-c { background: #fef9c3; color: #854d0e; }
+    .grade-d, .grade-f { background: #fee2e2; color: #991b1b; }
+    .result-body { padding: 12px; font-size: 12px; line-height: 1.7; display: none; white-space: pre-wrap; border-top: 1px solid #e5e5e5; max-height: 300px; overflow-y: auto; }
+    .result-body.open { display: block; }
+    .result-footer { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid #e5e5e5; background: #fafafa; }
+    .small-btn { padding: 4px 10px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; }
+    .small-btn:hover { background: #f0f0f0; }
+
+    .status { font-size: 12px; color: #666; text-align: center; padding: 8px; }
+    .error { color: #dc2626; }
+
+    .insert-all-btn { width: 100%; padding: 9px; background: #fff; color: #1a1a1a; border: 1.5px solid #1a1a1a; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 10px; display: none; }
+    .insert-all-btn:hover { background: #f5f5f5; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Document Auditor</h1>
+  <p>Runs all 4 audit prompts on your document automatically</p>
+</div>
+
+<div class="body">
+
+  <div class="api-row">
+    <label>Anthropic API Key</label>
+    <input type="password" id="api-key" placeholder="sk-ant-..." />
+  </div>
+
+  <div class="audit-select">
+    <label>Select audits to run</label>
+    <div class="audit-options">
+      <label class="audit-option">
+        <input type="checkbox" value="A" checked />
+        <span>A — Learner audit <small>Concept sequencing, definition gaps, pacing</small></span>
+      </label>
+      <label class="audit-option">
+        <input type="checkbox" value="B" checked />
+        <span>B — Technical forensics <small>Accuracy, prose, grammar, code blocks</small></span>
+      </label>
+      <label class="audit-option">
+        <input type="checkbox" value="C" checked />
+        <span>C — Retention architecture <small>Chunking, retrieval, motivation</small></span>
+      </label>
+      <label class="audit-option">
+        <input type="checkbox" value="D" checked />
+        <span>D — Visual architecture <small>Color, typography, spacing</small></span>
+      </label>
+    </div>
+  </div>
+
+  <button class="run-btn" id="run-btn" onclick="runAudits()">Run audits on this document</button>
+
+  <div class="progress" id="progress">
+    <div class="progress-label">Running audits...</div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="prog-bar"></div></div>
+    <div class="progress-step" id="prog-step"></div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <button class="insert-all-btn" id="insert-all-btn" onclick="insertAllResults()">Insert full report into document</button>
+
+  <div class="results" id="results"></div>
+
+</div>
+
+<script>
+  Office.onReady(() => {
+    const saved = localStorage.getItem('anthropic_key');
+    if (saved) document.getElementById('api-key').value = saved;
+  });
+
+  const PROMPTS = {
+    A: {
+      label: 'A — Learner audit',
+      system: `You are a Principal Learning Experience Architect evaluating a technical document for a complete beginner called Alex who has never opened a terminal.
+
+Evaluate the document's learning experience: concept sequencing, definition gaps, lab executability, psychological safety, pacing.
+
+Structure your response exactly as:
+VERDICT: [Grade A-F] — [one paragraph justification]
+
+TOP 5 BARRIERS:
+1. [barrier, learner state, prescription]
+2. [barrier, learner state, prescription]
+3. [barrier, learner state, prescription]
+4. [barrier, learner state, prescription]
+5. [barrier, learner state, prescription]
+
+DEFINITION DEBT: [count of undefined terms, top 3 worst gaps with exact quotes]
+
+ABANDONMENT PREDICTION: [most likely dropout point, quoted text, intervention]
+
+TOP 3 PRESCRIPTIONS: [most urgent content additions]
+
+Be direct and specific. Cite exact text. No softening.`
+    },
+    B: {
+      label: 'B — Technical forensics',
+      system: `You are a Principal Evaluator conducting a forensic audit of a technical document for accuracy and visual presentation.
+
+Evaluate: factual accuracy, prose mechanics, grammar, tone, visual layout, code blocks.
+
+Structure your response exactly as:
+VERDICT: [Grade A-F] — [one paragraph on technical accuracy AND visual presentation]
+
+TOP 5 CRITICAL FIXES:
+1. Problem: [quoted text] | Fix: [exact fix] | Rationale: [one sentence]
+2-5. [same format]
+
+GRAMMAR & MECHANICS: [every typo, punctuation error, subject-verb disagreement — quote and correct each]
+
+CODE BLOCK AUDIT: [prompt symbol consistency, output vs command distinction, wrapping issues]
+
+SWOT:
+Strengths: [2-3 points]
+Weaknesses: [2-3 points with fixes]
+Opportunities: [2-3 points]
+Threats: [2-3 points]
+
+Be direct. Quote exact text. No softening.`
+    },
+    C: {
+      label: 'C — Retention architecture',
+      system: `You are a Principal Cognitive Architect evaluating a technical document for psychological retention effectiveness only. Not grammar or accuracy — only retention psychology.
+
+Evaluate: chunking, spaced retrieval, storytelling, active learning, error feedback, motivation.
+
+Structure your response exactly as:
+VERDICT: [Grade A-F] — [A means Alex will remember and apply this. F means designed for passive reading]
+
+TOP 5 COGNITIVE FIXES:
+1. Problem: [quoted example] | Fix: [actionable change] | Rationale: [why this matters for retention]
+2-5. [same format]
+
+ACTIVE LEARNING RATIO: [stages with more than 3 pages before a lab — flag each one]
+
+RETRIEVAL GAPS: [concepts that appear only once and never recalled — list top 5 with locations]
+
+ABANDONMENT PREDICTION: [dropout point, quoted text, precise intervention]
+
+Be direct. Quote exact text. No softening.`
+    },
+    D: {
+      label: 'D — Visual architecture',
+      system: `You are an Information Designer auditing a technical document for visual presentation, color, typography, and structural clarity ONLY. Not content — only how it looks.
+
+Structure your response exactly as:
+VERDICT: [Grade A-F] — [A = eye moves effortlessly, F = layout fights the reader]
+
+COLOR VIOLATIONS: [every inconsistency — location, expected, actual]
+
+TYPOGRAPHY ISSUES: [font size deviations, weight inconsistencies, spacing anomalies]
+
+TOP 5 DENSITY PROBLEMS: [most visually overwhelming sections with before/after prescription]
+
+TEMPLATE CONSISTENCY: [stages/labs breaking visual template — list with specific deviations]
+
+SINGLE WORST PAGE: [location, why it fails, complete redesign prescription]
+
+Be direct. Cite exact locations. No softening.`
+    }
+  };
+
+  let allResults = {};
+
+  async function runAudits() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) { showStatus('Enter your Anthropic API key first.', true); return; }
+    localStorage.setItem('anthropic_key', apiKey);
+
+    const selected = [...document.querySelectorAll('.audit-options input:checked')].map(el => el.value);
+    if (!selected.length) { showStatus('Select at least one audit.', true); return; }
+
+    let docText = '';
+    try {
+      await Word.run(async (context) => {
+        const body = context.document.body;
+        body.load('text');
+        await context.sync();
+        docText = body.text;
+      });
+    } catch(e) {
+      showStatus('Could not read document. Make sure a document is open.', true);
+      return;
+    }
+
+    if (!docText.trim()) { showStatus('Document appears empty.', true); return; }
+
+    document.getElementById('run-btn').disabled = true;
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('insert-all-btn').style.display = 'none';
+    document.getElementById('progress').style.display = 'block';
+    allResults = {};
+
+    for (let i = 0; i < selected.length; i++) {
+      const key = selected[i];
+      const p = PROMPTS[key];
+      const pct = Math.round((i / selected.length) * 100);
+      document.getElementById('prog-bar').style.width = pct + '%';
+      document.getElementById('prog-step').textContent = `Running ${p.label} (${i+1} of ${selected.length})...`;
+
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-opus-4-6',
+            max_tokens: 2000,
+            system: p.system,
+            messages: [{ role: 'user', content: `Evaluate this document:\n\n${docText.substring(0, 15000)}` }]
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error?.message || 'API error');
+        }
+
+        const data = await res.json();
+        const text = data.content?.map(b => b.text || '').join('') || 'No response.';
+        allResults[key] = { label: p.label, text };
+        addCard(key, p.label, text);
+      } catch(e) {
+        allResults[key] = { label: p.label, text: 'Error: ' + e.message };
+        addCard(key, p.label, 'Error: ' + e.message, true);
+      }
+    }
+
+    document.getElementById('prog-bar').style.width = '100%';
+    document.getElementById('prog-step').textContent = 'All audits complete.';
+    document.getElementById('run-btn').disabled = false;
+    if (Object.keys(allResults).length) document.getElementById('insert-all-btn').style.display = 'block';
+  }
+
+  function extractGrade(text) {
+    const m = text.match(/VERDICT[:\s]+([A-F])/i) || text.match(/Grade[:\s]+([A-F])/i);
+    return m ? m[1].toUpperCase() : null;
+  }
+
+  function addCard(key, label, text, isError) {
+    const results = document.getElementById('results');
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    const grade = isError ? null : extractGrade(text);
+    const gradeHtml = grade ? `<span class="grade grade-${grade.toLowerCase()}">${grade}</span>` : '';
+    card.innerHTML = `
+      <div class="result-header" onclick="toggleBody('body-${key}')">
+        <div class="result-title">${gradeHtml} ${label}</div>
+        <span style="font-size:11px;color:#999" id="chev-${key}">▼</span>
+      </div>
+      <div class="result-body open" id="body-${key}">${text}</div>
+      <div class="result-footer">
+        <button class="small-btn" onclick="copyText('${key}')">Copy</button>
+        <button class="small-btn" onclick="insertIntoDoc('${key}')">Insert into doc</button>
+      </div>`;
+    results.appendChild(card);
+  }
+
+  function toggleBody(id) {
+    const b = document.getElementById(id);
+    const key = id.replace('body-','');
+    b.classList.toggle('open');
+    document.getElementById('chev-'+key).textContent = b.classList.contains('open') ? '▲' : '▼';
+  }
+
+  function copyText(key) { navigator.clipboard.writeText(allResults[key]?.text || ''); }
+
+  async function insertIntoDoc(key) {
+    const r = allResults[key];
+    if (!r) return;
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.insertParagraph('', Word.InsertLocation.end);
+      body.insertParagraph('═'.repeat(50), Word.InsertLocation.end);
+      const h = body.insertParagraph(r.label.toUpperCase(), Word.InsertLocation.end);
+      h.styleBuiltIn = Word.Style.heading1;
+      body.insertParagraph('═'.repeat(50), Word.InsertLocation.end);
+      body.insertParagraph(r.text, Word.InsertLocation.end);
+      await context.sync();
+    });
+  }
+
+  async function insertAllResults() {
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.insertParagraph('', Word.InsertLocation.end);
+      const title = body.insertParagraph('DOCUMENT AUDIT REPORT', Word.InsertLocation.end);
+      title.styleBuiltIn = Word.Style.heading1;
+      for (const key of ['A','B','C','D']) {
+        const r = allResults[key];
+        if (!r) continue;
+        body.insertParagraph('', Word.InsertLocation.end);
+        const h = body.insertParagraph(r.label.toUpperCase(), Word.InsertLocation.end);
+        h.styleBuiltIn = Word.Style.heading2;
+        body.insertParagraph(r.text, Word.InsertLocation.end);
+      }
+      await context.sync();
+    });
+  }
+
+  function showStatus(msg, isErr) {
+    const s = document.getElementById('status');
+    s.textContent = msg;
+    s.className = 'status' + (isErr ? ' error' : '');
+  }
+</script>
+</body>
+</html>
